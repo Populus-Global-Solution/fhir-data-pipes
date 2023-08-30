@@ -22,22 +22,26 @@ import ca.uhn.fhir.rest.gclient.DateClientParam;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.param.DateRangeParam;
+import ca.uhn.fhir.rest.param.TokenParam;
+import ca.uhn.fhir.rest.param.TokenParamModifier;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Patient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.hl7.fhir.r4.model.Bundle;
-import org.hl7.fhir.r4.model.Patient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class FhirSearchUtil {
 
@@ -52,11 +56,15 @@ public class FhirSearchUtil {
   public Bundle searchByUrl(String searchUrl, int count, SummaryEnum summaryMode) {
     try {
       IGenericClient client = openmrsUtil.getSourceClient();
+      TokenParam notGoldenParam = new TokenParam("http://hapifhir.io/fhir/NamingSystem/mdm-record-status", "GOLDEN_RECORD");
+      notGoldenParam.setModifier(TokenParamModifier.NOT);
+
       Bundle result =
           client
               .search()
               .byUrl(searchUrl)
               .count(count)
+              .whereMap(Map.of("_tag:not", Collections.singletonList("http://hapifhir.io/fhir/NamingSystem/mdm-record-status|GOLDEN_RECORD")))
               .summaryMode(summaryMode)
               .returnBundle(Bundle.class)
               .execute();
