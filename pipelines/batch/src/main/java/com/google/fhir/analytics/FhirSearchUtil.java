@@ -22,6 +22,8 @@ import ca.uhn.fhir.rest.gclient.DateClientParam;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.param.DateRangeParam;
+import ca.uhn.fhir.rest.param.TokenParam;
+import ca.uhn.fhir.rest.param.TokenParamModifier;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
@@ -39,7 +41,10 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
+import org.hl7.fhir.instance.model.api.IBaseResource;
+import org.hl7.fhir.r4.model.BaseResource;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.DomainResource;
 import org.hl7.fhir.r4.model.Patient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,11 +62,15 @@ public class FhirSearchUtil {
   public Bundle searchByUrl(String searchUrl, int count, SummaryEnum summaryMode) {
     try {
       IGenericClient client = openmrsUtil.getSourceClient();
+      TokenParam notGoldenParam = new TokenParam("http://hapifhir.io/fhir/NamingSystem/mdm-record-status", "GOLDEN_RECORD");
+      notGoldenParam.setModifier(TokenParamModifier.NOT);
+
       Bundle result =
           client
               .search()
               .byUrl(searchUrl)
               .count(count)
+              .where(Map.of("_tag", List.of(notGoldenParam)))
               .summaryMode(summaryMode)
               .returnBundle(Bundle.class)
               .execute();
