@@ -16,6 +16,8 @@
 package com.google.fhir.analytics;
 
 import ca.uhn.fhir.rest.api.SearchTotalModeEnum;
+import ca.uhn.fhir.rest.api.SortOrderEnum;
+import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.SummaryEnum;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.DateClientParam;
@@ -56,15 +58,12 @@ public class FhirSearchUtil {
   public Bundle searchByUrl(String searchUrl, int count, SummaryEnum summaryMode) {
     try {
       IGenericClient client = openmrsUtil.getSourceClient();
-      TokenParam notGoldenParam = new TokenParam("http://hapifhir.io/fhir/NamingSystem/mdm-record-status", "GOLDEN_RECORD");
-      notGoldenParam.setModifier(TokenParamModifier.NOT);
 
       Bundle result =
           client
               .search()
               .byUrl(searchUrl)
               .count(count)
-              .whereMap(Map.of("_tag:not", Collections.singletonList("http://hapifhir.io/fhir/NamingSystem/mdm-record-status|GOLDEN_RECORD")))
               .summaryMode(summaryMode)
               .returnBundle(Bundle.class)
               .execute();

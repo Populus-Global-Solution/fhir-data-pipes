@@ -297,7 +297,7 @@ public class ParquetUtil {
     }
     for (BundleEntryComponent entry : bundle.getEntry()) {
       Resource resource = entry.getResource();
-      if (resourceTypes == null || resourceTypes.contains(resource.getResourceType().name())) {
+      if (resourceTypes == null || resourceTypes.contains(resource.getResourceType().name()) || resource.getMeta().getTag("http://hapifhir.io/fhir/NamingSystem/mdm-record-status", "GOLDEN_RECORD") != null) {
         write(resource);
       }
     }
