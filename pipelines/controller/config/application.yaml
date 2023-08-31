@@ -14,76 +14,26 @@
 # limitations under the License.
 #
 
+# See `pipelines/controller/config/application.yaml` for full documentation
+# of these options.
+# This config is meant to be used by `compose-controller-spark-sql.yaml`.
 fhirdata:
-  # The base URL of the source FHIR server. If `dbConfig` is not set, resources
-  # are fetched from this URL through the FHIR Search API.
-  # Equivalent to the pipeline `fhirServerUrl` parameter.
-  fhirServerUrl: "http://172.17.0.1:8091/fhir"
-
-  # The path to the file containing JDBC settings for connecting to a HAPI FHIR
-  # server database. If this is set, resources are fetched directly from the
-  # database and `fhirServerUrl` is ignored.
-  # Equivalent to pipeline `fhirDatabaseConfigPath` parameter.
-  # dbConfig: "config/hapi-postgres-config.json"
-
-  # The path to output Parquet files to. The last portion of the
-  # path is used as a prefix for naming the directory that contains
-  # per-resource directories and a timestamp will be added;
-  # for example, "config/controller_DWH_ORIG" will create something like
-  # ./config/controller_DWH_ORIG_TIMESTAMP_2023-01-27T23-55-39.295824Z
-  # Similar to the pipeline `outputParquetPath` parameter.
-  # 
-  # For GCS buckets, dwhRootPrefix must be of the format
-  # "gs://<bucket>/<baseDirPath>/<prefix>". <baseDirPath> is optional
-  # for GCS buckets and may contain 0 or more directory names.
-  #
-  # For *nix file systems, dwhRootPrefix must be of the format
-  # "/<baseDirPath>/<prefix>" and can be absolute or relative. <baseDirPath>
-  # is required for *nix, and must contain 1 or more directory names.
-  # dwhRootPrefix: "gs://fhir-test-analytics/config/controller_DWH_ORIG"
-  dwhRootPrefix: "config/controller_DWH_ORIG"
-
-  # The schedule for automatic incremental pipeline runs.
-  # Uses the Spring CronExpression format, i.e.,
-  # "second minute hour day-of-the-month month day-of-the-week", so:
-  # "0 0 * * * *" means top of every hour;
-  # "*/40 * * * * *" means every 40 seconds;
-  # Scheduling very frequent runs is resource intensive.
+  # 172.17.0.1 is an example docker network interface ip address;
+  # `hapi-server` is another docker example where a container with that name is
+  # running on the same docker network.
+  fhirServerUrl: "https://cdep.populus.plus/api/fhir/R4/"
+  fhirServerUserName: "9c027e36-d2c7-475a-90fd-b94e0e05cebe"
+  fhirServerPassword: "d8d24dc069abf94a5fc7fcfbc9afbcb117975f4a54d0e5614dd745277462ef46"
+  dwhRootPrefix: "dwh_local/controller_DWH"
   incrementalSchedule: "0 0 * * * *"
-
-  # The schedule for automatic DWH snapshot purging. There is no benefit
-  # to scheduling the purge job more frequently than incremental runs.
-  # Uses the Spring CronExpression format.
   purgeSchedule: "0 30 * * * *"
-
-  # The number of DWH snapshots to retain when the purge job runs.
-  # This must be > 0 or the purge job will not run. If a pipeline run fails
-  # for any reason, any partial output must be manually removed.
   numOfDwhSnapshotsToRetain: 2
-
-  # The comma-separated list of FHIR resources to fetch/monitor.
-  # Equivalent to pipeline `resourceList` parameter.
-  resourceList: "Patient,Encounter,Observation"
-
-  # The maximum number of Flink workers to use. Each worker may have 
-  # `numThreads` parallel threads.
+  resourceList: "AllergyIntolerance,CarePlan,CareTeam,Claim,CodeSystem,Condition,Device,DiagnosticReport,DocumentReference,Encounter,Immunization,MedicationAdministration,MedicationRequest,Observation,Patient,Practitioner,Procedure,Provenance,SearchParameter,SupplyDelivery"
   maxWorkers: 1
-
-  # If a positive number, the number of threads to use per worker.
-  # Otherwise, the number of threads is equal to the number of cores.
   numThreads: -1
-
-  # Whether resource tables should be automatically created on a
-  # Hive/Spark server. Primarily meant for single-machine deployment.
-  createHiveResourceTables: false
-
-  # Path to a file with the settings used to create tables.
-  # Required if createHiveResourceTables is `true`.
-  thriftserverHiveConfig: "config/thriftserver-hive-config.json"
-
-  # The JDBC driver to use when creating tables.
+  createHiveResourceTables: true
+  thriftserverHiveConfig: "config/thriftserver-hive-config_local.json"
   hiveJdbcDriver: "org.apache.hive.jdbc.HiveDriver"
-
 # Enable spring boot actuator end points, use "*" to expose all endpoints, or a comma-separated
 # list to expose selected ones
 management:
