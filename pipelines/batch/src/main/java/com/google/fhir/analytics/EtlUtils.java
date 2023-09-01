@@ -78,6 +78,7 @@ class EtlUtils {
         .writeTimestampFile(mergedInstant, DwhFiles.TIMESTAMP_FILE_START);
     PipelineResult pipelineResult = runPipeline(pipeline);
     DwhFiles.forRoot(options.getMergedDwh()).writeTimestampFile(DwhFiles.TIMESTAMP_FILE_END);
+    EtlUtils.logMetrics(pipelineResult.metrics());
     return pipelineResult;
   }
 

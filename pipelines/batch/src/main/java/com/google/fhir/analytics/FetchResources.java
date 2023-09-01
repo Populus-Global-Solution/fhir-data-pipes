@@ -69,6 +69,8 @@ public class FetchResources
         // TODO: Find a more generic way to check if this is a reference to a Patient. With the
         // current OpenMRS setup, reference.getType() is null so we cannot rely on that.
         String refStr = reference.getReference();
+        // Remove extra urn:uuid:
+        refStr = refStr.replace("urn:uuid:", "Patient/");
         Matcher matcher = PATIENT_REFERENCE.matcher(refStr);
         if (matcher.matches()) {
           patientId = matcher.group(1);
