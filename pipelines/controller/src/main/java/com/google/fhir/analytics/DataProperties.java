@@ -101,6 +101,12 @@ public class DataProperties {
 
   private String fhirServerOAuthClientSecret;
 
+  private boolean mergeGoldenResources;
+
+  private boolean treatPossibleMatchesAsMatches;
+
+  private String goldenResourceTypes;
+
   @PostConstruct
   void validateProperties() {
     CronExpression.parse(incrementalSchedule);
@@ -137,6 +143,11 @@ public class DataProperties {
       options.setFhirServerOAuthTokenEndpoint(fhirServerOAuthTokenEndpoint);
       options.setFhirServerOAuthClientId(fhirServerOAuthClientId);
       options.setFhirServerOAuthClientSecret(fhirServerOAuthClientSecret);
+      options.setMergeGoldenResources(mergeGoldenResources);
+      if (!Strings.isNullOrEmpty(goldenResourceTypes)) {
+        options.setGoldenResourceTypes(goldenResourceTypes);
+      }
+      options.setTreatPossibleMatchesAsMatches(treatPossibleMatchesAsMatches);
     }
     options.setResourceList(resourceList);
 
