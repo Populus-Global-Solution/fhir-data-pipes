@@ -94,7 +94,6 @@ public class FhirSearchUtilTest {
     when(untypedQuery.byUrl(SEARCH_URL)).thenReturn(query);
     when(untypedQuery.forResource(anyString())).thenReturn(query);
     when(query.count(anyInt())).thenReturn(query);
-    when(query.offset(anyInt())).thenReturn(query);
     when(query.totalMode(any(SearchTotalModeEnum.class))).thenReturn(query);
     when(query.summaryMode(any(SummaryEnum.class))).thenReturn(query);
     when(query.sort(any(SortSpec.class))).thenReturn(query);
