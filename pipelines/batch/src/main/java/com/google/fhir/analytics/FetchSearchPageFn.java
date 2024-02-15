@@ -285,6 +285,7 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
               if (goldenResourceTypes.contains(resource.fhirType())) {
                 String goldenResourceId =
                     getGoldenResourceReference(resource.getId()).getReference();
+				// TODO: ACS-7652 filter invalid Golden Resources
                 return !resource.getId().equals(goldenResourceId);
               }
 
