@@ -109,6 +109,14 @@ public class DataProperties {
 
   public String sinkUserName;
 
+  private boolean mergeGoldenResources;
+
+  private boolean treatPossibleMatchesAsMatches;
+
+  private String mdmResourceList;
+
+  private String structureDefinitionsDir;
+
   public String sinkPassword;
 
   private String structureDefinitionsPath;
@@ -212,6 +220,10 @@ public class DataProperties {
     String timestampSuffix = DwhFiles.safeTimestampSuffix();
     options.setOutputParquetPath(dwhRootPrefix + DwhFiles.TIMESTAMP_PREFIX + timestampSuffix);
 
+    options.setMapToGoldenResources(mergeGoldenResources);
+    options.setTreatPossibleMatchesAsMatches(treatPossibleMatchesAsMatches);
+    options.setMdmResourceList(mdmResourceList);
+
     PipelineConfig.PipelineConfigBuilder pipelineConfigBuilder = addFlinkOptions(options);
 
     // Get hold of thrift server parquet directory from dwhRootPrefix config.
@@ -254,8 +266,15 @@ public class DataProperties {
             "",
             ""),
         new ConfigFields("fhirdata.recursiveDepth", String.valueOf(recursiveDepth), "", ""),
+        new ConfigFields("fhirdata.createParquetViews", String.valueOf(createParquetViews), "", ""),
         new ConfigFields(
-            "fhirdata.createParquetViews", String.valueOf(createParquetViews), "", ""));
+            "fhirdata.mapToGoldenResources", String.valueOf(mergeGoldenResources), "", ""),
+        new ConfigFields("fhirdata.mdmResourceList", mdmResourceList, "", ""),
+        new ConfigFields(
+            "fhirdata.treatPossibleMatchesAsMatches",
+            String.valueOf(treatPossibleMatchesAsMatches),
+            "",
+            ""));
   }
 
   ConfigFields getConfigFields(FhirEtlOptions options, Method getMethod) {

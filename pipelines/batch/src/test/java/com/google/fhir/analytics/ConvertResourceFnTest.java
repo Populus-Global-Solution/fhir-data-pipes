@@ -33,6 +33,7 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.Encounter;
 import org.hl7.fhir.r4.model.Patient;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.codesystems.ActionType;
@@ -79,13 +80,20 @@ public class ConvertResourceFnTest {
         Resources.toString(Resources.getResource("patient.json"), StandardCharsets.UTF_8);
     HapiRowDescriptor element =
         HapiRowDescriptor.create(
-            "123", null, "Patient", "2020-09-19 12:09:23", "R4", "1", patientResourceStr);
+            "123",
+            "my-patient-id",
+            null,
+            "Patient",
+            "2020-09-19 12:09:23",
+            "R4",
+            "1",
+            patientResourceStr);
     convertResourceFn.writeResource(element);
 
     // Verify the resource is sent to the writer.
     verify(mockParquetUtil).write(resourceCaptor.capture());
     Resource capturedResource = resourceCaptor.getValue();
-    assertThat(capturedResource.getId(), equalTo("123"));
+    assertThat(capturedResource.getId(), equalTo("my-patient-id"));
     assertThat(capturedResource.getMeta().getVersionId(), equalTo("1"));
     assertThat(
         capturedResource.getMeta().getLastUpdated(),
@@ -105,6 +113,7 @@ public class ConvertResourceFnTest {
     HapiRowDescriptor element =
         HapiRowDescriptor.create(
             "123",
+            "my-patient-id",
             "forced-id-123",
             "Patient",
             "2020-09-19 12:09:23",
@@ -134,7 +143,14 @@ public class ConvertResourceFnTest {
     // Deleted Patient resource
     HapiRowDescriptor element =
         HapiRowDescriptor.create(
-            "123", "forced-id-123", "Patient", "2020-09-19 12:09:23", "R4", "2", "");
+            "123",
+            "my-patient-id",
+            "forced-id-123",
+            "Patient",
+            "2020-09-19 12:09:23",
+            "R4",
+            "2",
+            "");
     convertResourceFn.writeResource(element);
     // Verify that the ParquetUtil writer is not invoked for the deleted resource.
     verify(mockParquetUtil, times(0)).write(Mockito.any());
@@ -149,7 +165,14 @@ public class ConvertResourceFnTest {
     // Deleted Patient resource
     HapiRowDescriptor element =
         HapiRowDescriptor.create(
-            "123", "forced-id-123", "Patient", "2020-09-19 12:09:23", "R4", "2", "");
+            "123",
+            "my-patient-id",
+            "forced-id-123",
+            "Patient",
+            "2020-09-19 12:09:23",
+            "R4",
+            "2",
+            "");
     convertResourceFn.writeResource(element);
 
     // Verify the deleted resource is sent to the writer.
@@ -179,6 +202,7 @@ public class ConvertResourceFnTest {
     HapiRowDescriptor element =
         HapiRowDescriptor.create(
             "123",
+            "my-patient-id",
             "forced-id-123",
             "Patient",
             "2020-09-19 12:09:23",
@@ -212,5 +236,48 @@ public class ConvertResourceFnTest {
     assertThat(capturedResource.getMeta().getSecurity().get(0).getCode(), equalTo("code2"));
     assertThat(capturedResource.getMeta().getSecurity().get(0).getSystem(), equalTo("system2"));
     assertThat(capturedResource.getMeta().getSecurity().get(0).getDisplay(), equalTo("display2"));
+  }
+
+  @Test
+  public void testProcessEncounterResource_withMdmLinks()
+      throws IOException, java.text.ParseException, SQLException, PropertyVetoException,
+          ViewApplicationException, ProfileException {
+    String[] args = {"--outputParquetPath=SOME_PATH"};
+    setUp(args);
+    String encounterResourceStr =
+        Resources.toString(Resources.getResource("encounter.json"), StandardCharsets.UTF_8);
+    HapiRowDescriptor element =
+        HapiRowDescriptor.create(
+            "456",
+            "mock-id",
+            null,
+            "Encounter",
+            "2020-09-19 12:09:23",
+            "R4",
+            "1",
+            encounterResourceStr);
+
+    // Add MdmLinks to the HapiRowDescriptor
+    MdmLink mdmLink1 =
+        MdmLink.builder()
+            .resourceId("456")
+            .sourceFhirId("f71e5b02-4a5a-44f8-82ec-c5a215ad886c")
+            .goldenFhirId("golden-id-1")
+            .build();
+    element.setMdmLinks(List.of(mdmLink1));
+
+    convertResourceFn.writeResource(element);
+
+    // Verify the resource is sent to the writer.
+    verify(mockParquetUtil).write(resourceCaptor.capture());
+    Resource capturedResource = resourceCaptor.getValue();
+    assertThat(capturedResource.getId(), equalTo("mock-id"));
+    assertThat(capturedResource.getMeta().getVersionId(), equalTo("1"));
+    assertThat(
+        capturedResource.getMeta().getLastUpdated(),
+        equalTo(new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse("2020-09-19 12:09:23")));
+    assertThat(capturedResource.getResourceType().toString(), equalTo("Encounter"));
+    assertThat(
+        ((Encounter) capturedResource).getSubject().getReference(), equalTo("Patient/golden-id-1"));
   }
 }
