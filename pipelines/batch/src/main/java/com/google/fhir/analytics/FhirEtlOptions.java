@@ -260,4 +260,24 @@ public interface FhirEtlOptions extends BasePipelineOptions {
   String getSourceNDJsonFilePattern();
 
   void setSourceNDJsonFilePattern(String value);
+
+  @Description(
+      "Whether to use HAPI-FHIR's MDM service to replace Resource references with their Golden"
+          + " Resource counterparts")
+  @Default.Boolean(false)
+  Boolean getMergeGoldenResources();
+
+  void setMergeGoldenResources(Boolean mergeGoldenResources);
+
+  @Description("Whether to treat possible matches as full matches when golden merging.")
+  @Default.Boolean(false)
+  Boolean getTreatPossibleMatchesAsMatches();
+
+  void setTreatPossibleMatchesAsMatches(Boolean treatPossibleMatchesAsMatches);
+
+  @Description("Comma separated list of resources to treat as Golden Resources.")
+  @Default.String("Patient")
+  String getGoldenResourceTypes();
+
+  void setGoldenResourceTypes(String goldenResourceTypes);
 }

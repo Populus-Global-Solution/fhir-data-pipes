@@ -20,6 +20,8 @@ import ca.uhn.fhir.context.FhirVersionEnum;
 import ca.uhn.fhir.context.ParserOptions;
 import ca.uhn.fhir.parser.IParser;
 import com.cerner.bunsen.exception.ProfileException;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.fhir.analytics.JdbcConnectionPools.DataSourceConfig;
@@ -27,6 +29,8 @@ import com.google.fhir.analytics.model.DatabaseConfiguration;
 import com.google.fhir.analytics.view.ViewApplicationException;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
@@ -34,9 +38,12 @@ import org.apache.beam.sdk.metrics.Counter;
 import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.transforms.DoFn;
 import org.apache.beam.sdk.values.KV;
+import org.hl7.fhir.r4.hapi.fluentpath.FhirPathR4;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Bundle.BundleEntryComponent;
+import org.hl7.fhir.r4.model.Reference;
 import org.hl7.fhir.r4.model.Resource;
+import org.hl7.fhir.r4.model.StringType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +85,12 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
 
   private final String oAuthClientSecret;
 
+  private final boolean mergeGoldenResources;
+
+  private final boolean treatPossibleMatchesAsMatches;
+
+  private final List<String> goldenResourceTypes;
+
   protected final String sinkPath;
 
   private final String sinkUsername;
@@ -100,6 +113,8 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
 
   private final int maxPoolSize;
 
+  private static final Cache<String, String> goldenResources = Caffeine.newBuilder().maximumSize(10000).build();;
+
   @VisibleForTesting protected ParquetUtil parquetUtil;
 
   protected FetchUtil fetchUtil;
@@ -118,6 +133,8 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
 
   protected AvroConversionUtil avroConversionUtil;
 
+  protected FhirPathR4 fhirPath;
+
   FetchSearchPageFn(FhirEtlOptions options, String stageIdentifier) {
     this.sinkPath = options.getFhirSinkPath();
     this.sinkUsername = options.getSinkUserName();
@@ -128,6 +145,9 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
     this.oAuthTokenEndpoint = options.getFhirServerOAuthTokenEndpoint();
     this.oAuthClientId = options.getFhirServerOAuthClientId();
     this.oAuthClientSecret = options.getFhirServerOAuthClientSecret();
+    this.mergeGoldenResources = options.getMergeGoldenResources();
+    this.treatPossibleMatchesAsMatches = options.getTreatPossibleMatchesAsMatches();
+    this.goldenResourceTypes = List.of(options.getGoldenResourceTypes().split(","));
     this.stageIdentifier = stageIdentifier;
     this.parquetFile = options.getOutputParquetPath();
     this.secondsToFlush = options.getSecondsToFlushParquetFiles();
@@ -218,6 +238,8 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
       //  https://github.com/google/fhir-data-pipes/issues/288
       jdbcWriter = new JdbcResourceWriter(jdbcSink, viewDefinitionsDir, fhirContext);
     }
+
+    this.fhirPath = new FhirPathR4(fhirContext);
   }
 
   /**
@@ -271,7 +293,12 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
       throws IOException, SQLException, ViewApplicationException, ProfileException {
     if (bundle != null && bundle.getEntry() != null) {
       numFetchedResources.inc(bundle.getEntry().size());
-      if (parquetUtil != null) {
+
+	  if (mergeGoldenResources) {
+	    processGoldenMerging(bundle);
+	  }
+
+      if (!parquetFile.isEmpty()) {
         long startTime = System.currentTimeMillis();
         // TODO: The right way for writing Parquet records is to cache them and wait
         //  until processing a Beam Bundle is done, i.e., write in @FinishBundle.
@@ -300,5 +327,49 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
         }
       }
     }
+  }
+
+  private void processGoldenMerging(Bundle bundle) {
+    log.debug("Processing golden resources for Bundle");
+
+    bundle
+        .getEntry()
+        .removeIf(
+            entry -> {
+              Resource resource = entry.getResource();
+              if (goldenResourceTypes.contains(resource.fhirType())) {
+                String goldenResourceId =
+                    getGoldenResourceReference(resource.getId()).getReference();
+				// TODO: ACS-7652 filter invalid Golden Resources
+                return !resource.getId().equals(goldenResourceId);
+              }
+
+              return false;
+            });
+
+    for (BundleEntryComponent entry : bundle.getEntry()) {
+      Resource resource = entry.getResource();
+
+      Optional<StringType> subject =
+          fhirPath.evaluateFirst(resource, "subject.reference", StringType.class);
+      if (subject.isPresent()) {
+        resource.setProperty("subject", getGoldenResourceReference(subject.get().getValue()));
+        continue;
+      }
+
+      Optional<StringType> patient =
+          fhirPath.evaluateFirst(resource, "patient.reference", StringType.class);
+      patient.ifPresent(
+          reference ->
+              resource.setProperty(
+                  "patient", getGoldenResourceReference(patient.get().getValue())));
+    }
+  }
+
+  private Reference getGoldenResourceReference(String fhirId) {
+    return new Reference(
+        goldenResources.get(
+            fhirId,
+            key -> fhirSearchUtil.getGoldenResourceFromId(key, treatPossibleMatchesAsMatches)));
   }
 }
