@@ -16,6 +16,7 @@
 package com.google.fhir.analytics;
 
 import ca.uhn.fhir.rest.api.SearchTotalModeEnum;
+import ca.uhn.fhir.rest.api.SortSpec;
 import ca.uhn.fhir.rest.api.SummaryEnum;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.DateClientParam;
@@ -36,11 +37,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
+import java.util.stream.Collectors;
+import org.hl7.fhir.instance.model.api.IAnyResource;
 import org.hl7.fhir.r4.model.Bundle;
+import org.hl7.fhir.r4.model.Parameters;
 import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.StringType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,6 +169,7 @@ public class FhirSearchUtil {
         .forResource(resourceType)
         .totalMode(SearchTotalModeEnum.ACCURATE)
         .count(count)
+        .sort(new SortSpec(IAnyResource.SP_RES_ID))
         .summaryMode(SummaryEnum.DATA)
         .returnBundle(Bundle.class);
   }
@@ -333,5 +340,70 @@ public class FhirSearchUtil {
     // The query is executed and checked for any errors during the connection, the result is ignored
     query.execute();
     log.info("Validating FHIR connection successful");
+  }
+
+  /**
+   * Queries HAPI FHIR MDM for the golden resource ID
+   *
+   * @param fhirId of the resource
+   * @return the golden resource's ID or the same ID if none was found
+   */
+  public String getGoldenResourceFromId(String fhirId, boolean treatPossibleMatchesAsMatches) {
+    // Query for links with this id
+    Parameters response = null;
+    try {
+      response =
+         fetchUtil
+              .getSourceClient()
+              .operation()
+              .onServer()
+              .named("$mdm-query-links")
+              .withParameter(Parameters.class, "resourceId", new StringType(fhirId))
+              .execute();
+    } catch (InvalidRequestException e) {
+      return fhirId;
+    }
+
+    // Get the link param lists
+    List<List<Parameters.ParametersParameterComponent>> links =
+        response.getParameter().stream()
+            .filter(param -> param.getName().equals("link"))
+            .map(linkParams -> linkParams.getPart())
+            .collect(Collectors.toList());
+
+    // Find the link with MATCH or POSSIBLE_MATCH
+    for (List<Parameters.ParametersParameterComponent> link : links) {
+      Optional<String> goldenResourceId =
+          getGoldenResourceFromLink(link, treatPossibleMatchesAsMatches);
+      if (goldenResourceId.isPresent()) {
+        return goldenResourceId.get();
+      }
+    }
+
+    return fhirId;
+  }
+
+  private Optional<String> getGoldenResourceFromLink(
+      List<Parameters.ParametersParameterComponent> link, boolean treatPossibleMatchesAsMatches) {
+    for (Parameters.ParametersParameterComponent param : link) {
+      if (param.getName().equals("matchResult")) {
+        String value = param.getValue().toString();
+        if (value.equals("MATCH")
+            || (treatPossibleMatchesAsMatches && value.equals("POSSIBLE_MATCH"))) {
+          String goldenResourceId =
+              link.stream()
+                  .filter(p -> p.getName().equals("goldenResourceId"))
+                  .findFirst()
+                  .get()
+                  .getValue()
+                  .toString();
+          return Optional.of(goldenResourceId);
+        } else {
+          return Optional.empty();
+        }
+      }
+    }
+
+    return Optional.empty();
   }
 }

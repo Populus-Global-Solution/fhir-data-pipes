@@ -109,6 +109,14 @@ public class DataProperties {
 
   public String sinkUserName;
 
+  private boolean mergeGoldenResources;
+
+  private boolean treatPossibleMatchesAsMatches;
+
+  private String goldenResourceTypes;
+
+  private String structureDefinitionsDir;
+
   public String sinkPassword;
 
   private String structureDefinitionsPath;
@@ -182,12 +190,18 @@ public class DataProperties {
       options.setJdbcModeHapi(true);
       options.setFhirDatabaseConfigPath(dbConfig);
     } else {
+      options.setTreatPossibleMatchesAsMatches(treatPossibleMatchesAsMatches);
       options.setFhirServerUrl(Strings.nullToEmpty(fhirServerUrl));
       options.setFhirServerPassword(Strings.nullToEmpty(fhirServerPassword));
       options.setFhirServerUserName(Strings.nullToEmpty(fhirServerUserName));
       options.setFhirServerOAuthTokenEndpoint(Strings.nullToEmpty(fhirServerOAuthTokenEndpoint));
       options.setFhirServerOAuthClientId(Strings.nullToEmpty(fhirServerOAuthClientId));
       options.setFhirServerOAuthClientSecret(Strings.nullToEmpty(fhirServerOAuthClientSecret));
+
+	  options.setMergeGoldenResources(mergeGoldenResources);
+	  if (!Strings.isNullOrEmpty(goldenResourceTypes)) {
+        options.setGoldenResourceTypes(goldenResourceTypes);
+      }
     }
     if (resourceList != null) {
       options.setResourceList(resourceList);
@@ -255,7 +269,10 @@ public class DataProperties {
             ""),
         new ConfigFields("fhirdata.recursiveDepth", String.valueOf(recursiveDepth), "", ""),
         new ConfigFields(
-            "fhirdata.createParquetViews", String.valueOf(createParquetViews), "", ""));
+            "fhirdata.createParquetViews", String.valueOf(createParquetViews), "", ""),
+        new ConfigFields("fhirdata.mergeGoldenResources", String.valueOf(mergeGoldenResources), "", ""),
+	    new ConfigFields("fhirdata.goldenResourceTypes", goldenResourceTypes, "", ""),
+	    new ConfigFields("fhirdata.treatPossibleMatchesAsMatches", String.valueOf(treatPossibleMatchesAsMatches), "", ""));
   }
 
   ConfigFields getConfigFields(FhirEtlOptions options, Method getMethod) {
