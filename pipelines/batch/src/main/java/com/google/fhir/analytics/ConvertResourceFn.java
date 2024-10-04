@@ -35,7 +35,13 @@ import org.apache.beam.sdk.metrics.Metrics;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.r4.model.CanonicalType;
 import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.Identifier;
+import org.hl7.fhir.r4.model.Location;
 import org.hl7.fhir.r4.model.Meta;
+import org.hl7.fhir.r4.model.Organization;
+import org.hl7.fhir.r4.model.Patient;
+import org.hl7.fhir.r4.model.Practitioner;
+import org.hl7.fhir.r4.model.PractitionerRole;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.codesystems.ActionType;
 import org.slf4j.Logger;
@@ -97,7 +103,7 @@ public class ConvertResourceFn extends FetchSearchPageFn<HapiRowDescriptor> {
 
   public void writeResource(HapiRowDescriptor element)
       throws IOException, ParseException, SQLException, ViewApplicationException, ProfileException {
-    String resourceId = element.resourceId();
+    String fhirId = element.fhirId();
     String forcedId = element.forcedId();
     String resourceType = element.resourceType();
     Meta meta =
@@ -106,6 +112,7 @@ public class ConvertResourceFn extends FetchSearchPageFn<HapiRowDescriptor> {
             .setLastUpdated(simpleDateFormat.parse(element.lastUpdated()));
     setMetaTags(element, meta);
     String jsonResource = element.jsonResource();
+    jsonResource = updateSourceIds(element);
     long startTime = System.currentTimeMillis();
     Resource resource = null;
     if (jsonResource == null || jsonResource.isBlank()) {
@@ -134,11 +141,12 @@ public class ConvertResourceFn extends FetchSearchPageFn<HapiRowDescriptor> {
     }
     totalParseTimeMillisMap.get(resourceType).inc(System.currentTimeMillis() - startTime);
     if (forcedId == null || forcedId.equals("")) {
-      resource.setId(resourceId);
+      resource.setId(fhirId);
     } else {
       resource.setId(forcedId);
     }
     resource.setMeta(meta);
+    addSourceIdentifiers(resource, element);
 
     numFetchedResourcesMap.get(resourceType).inc(1);
 
@@ -188,6 +196,42 @@ public class ConvertResourceFn extends FetchSearchPageFn<HapiRowDescriptor> {
       }
       if (!securityList.isEmpty()) {
         meta.setSecurity(securityList);
+      }
+    }
+  }
+
+  // TODO: Test StringUtils.replaceEach performance
+  private String updateSourceIds(HapiRowDescriptor element) {
+    String jsonResource = element.jsonResource();
+    if (element.getMdmLinks() != null) {
+      for (MdmLink mdmLink : element.getMdmLinks()) {
+        jsonResource =
+            element.jsonResource().replaceAll(mdmLink.getSourceFhirId(), mdmLink.getGoldenFhirId());
+      }
+    }
+    return jsonResource;
+  }
+
+  private void addSourceIdentifiers(Resource resource, HapiRowDescriptor element) {
+    if (element.getSourceIdentifiers() != null) {
+      List<Identifier> identifiers = new ArrayList<>();
+      for (SourceIdentifier sourceIdentifier : element.getSourceIdentifiers()) {
+        identifiers.add(
+            new Identifier()
+                .setSystem(sourceIdentifier.getSystem())
+                .setValue(sourceIdentifier.getValue()));
+      }
+
+      if (resource instanceof Patient patient) {
+        patient.setIdentifier(identifiers);
+      } else if (resource instanceof Practitioner practitioner) {
+        practitioner.setIdentifier(identifiers);
+      } else if (resource instanceof Organization organization) {
+        organization.setIdentifier(identifiers);
+      } else if (resource instanceof PractitionerRole practitionerRole) {
+        practitionerRole.setIdentifier(identifiers);
+      } else if (resource instanceof Location location) {
+        location.setIdentifier(identifiers);
       }
     }
   }

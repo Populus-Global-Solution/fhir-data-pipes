@@ -85,11 +85,11 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
 
   private final String oAuthClientSecret;
 
-  private final boolean mergeGoldenResources;
+  private final boolean mapToGoldenResources;
 
   private final boolean treatPossibleMatchesAsMatches;
 
-  private final List<String> goldenResourceTypes;
+  private final List<String> mdmResourceList;
 
   protected final String sinkPath;
 
@@ -115,7 +115,9 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
 
   private final int maxPoolSize;
 
-  private static final Cache<String, String> goldenResources = Caffeine.newBuilder().maximumSize(10000).build();;
+  private static final Cache<String, String> goldenResources =
+      Caffeine.newBuilder().maximumSize(10000).build();
+  ;
 
   @VisibleForTesting protected ParquetUtil parquetUtil;
 
@@ -150,9 +152,9 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
     this.oAuthTokenEndpoint = options.getFhirServerOAuthTokenEndpoint();
     this.oAuthClientId = options.getFhirServerOAuthClientId();
     this.oAuthClientSecret = options.getFhirServerOAuthClientSecret();
-    this.mergeGoldenResources = options.getMergeGoldenResources();
+    this.mapToGoldenResources = options.getMapToGoldenResources();
     this.treatPossibleMatchesAsMatches = options.getTreatPossibleMatchesAsMatches();
-    this.goldenResourceTypes = List.of(options.getGoldenResourceTypes().split(","));
+    this.mdmResourceList = List.of(options.getMdmResourceList().split(","));
     this.stageIdentifier = stageIdentifier;
     this.parquetFile = options.getOutputParquetPath();
     this.secondsToFlush = options.getSecondsToFlushParquetFiles();
@@ -311,9 +313,9 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
     if (bundle != null && bundle.getEntry() != null) {
       numFetchedResources.inc(bundle.getEntry().size());
 
-	  if (mergeGoldenResources) {
-	    processGoldenMerging(bundle);
-	  }
+      if (mapToGoldenResources) {
+        processGoldenMerging(bundle);
+      }
 
       if (!parquetFile.isEmpty()) {
         long startTime = System.currentTimeMillis();
@@ -348,10 +350,10 @@ abstract class FetchSearchPageFn<T> extends DoFn<T, KV<String, Integer>> {
         .removeIf(
             entry -> {
               Resource resource = entry.getResource();
-              if (goldenResourceTypes.contains(resource.fhirType())) {
+              if (mdmResourceList.contains(resource.fhirType())) {
                 String goldenResourceId =
                     getGoldenResourceReference(resource.getId()).getReference();
-				// TODO: ACS-7652 filter invalid Golden Resources
+                // TODO: ACS-7652 filter invalid Golden Resources
                 return !resource.getId().equals(goldenResourceId);
               }
 

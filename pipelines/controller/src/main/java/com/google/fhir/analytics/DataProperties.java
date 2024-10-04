@@ -113,7 +113,7 @@ public class DataProperties {
 
   private boolean treatPossibleMatchesAsMatches;
 
-  private String goldenResourceTypes;
+  private String mdmResourceList;
 
   private String structureDefinitionsDir;
 
@@ -190,18 +190,12 @@ public class DataProperties {
       options.setJdbcModeHapi(true);
       options.setFhirDatabaseConfigPath(dbConfig);
     } else {
-      options.setTreatPossibleMatchesAsMatches(treatPossibleMatchesAsMatches);
       options.setFhirServerUrl(Strings.nullToEmpty(fhirServerUrl));
       options.setFhirServerPassword(Strings.nullToEmpty(fhirServerPassword));
       options.setFhirServerUserName(Strings.nullToEmpty(fhirServerUserName));
       options.setFhirServerOAuthTokenEndpoint(Strings.nullToEmpty(fhirServerOAuthTokenEndpoint));
       options.setFhirServerOAuthClientId(Strings.nullToEmpty(fhirServerOAuthClientId));
       options.setFhirServerOAuthClientSecret(Strings.nullToEmpty(fhirServerOAuthClientSecret));
-
-	  options.setMergeGoldenResources(mergeGoldenResources);
-	  if (!Strings.isNullOrEmpty(goldenResourceTypes)) {
-        options.setGoldenResourceTypes(goldenResourceTypes);
-      }
     }
     if (resourceList != null) {
       options.setResourceList(resourceList);
@@ -225,6 +219,10 @@ public class DataProperties {
     // Using underscore for suffix as hyphens are discouraged in hive table names.
     String timestampSuffix = DwhFiles.safeTimestampSuffix();
     options.setOutputParquetPath(dwhRootPrefix + DwhFiles.TIMESTAMP_PREFIX + timestampSuffix);
+
+    options.setMapToGoldenResources(mergeGoldenResources);
+    options.setTreatPossibleMatchesAsMatches(treatPossibleMatchesAsMatches);
+    options.setMdmResourceList(mdmResourceList);
 
     PipelineConfig.PipelineConfigBuilder pipelineConfigBuilder = addFlinkOptions(options);
 
@@ -268,11 +266,15 @@ public class DataProperties {
             "",
             ""),
         new ConfigFields("fhirdata.recursiveDepth", String.valueOf(recursiveDepth), "", ""),
+        new ConfigFields("fhirdata.createParquetViews", String.valueOf(createParquetViews), "", ""),
         new ConfigFields(
-            "fhirdata.createParquetViews", String.valueOf(createParquetViews), "", ""),
-        new ConfigFields("fhirdata.mergeGoldenResources", String.valueOf(mergeGoldenResources), "", ""),
-	    new ConfigFields("fhirdata.goldenResourceTypes", goldenResourceTypes, "", ""),
-	    new ConfigFields("fhirdata.treatPossibleMatchesAsMatches", String.valueOf(treatPossibleMatchesAsMatches), "", ""));
+            "fhirdata.mergeGoldenResources", String.valueOf(mergeGoldenResources), "", ""),
+        new ConfigFields("fhirdata.goldenResourceTypes", mdmResourceList, "", ""),
+        new ConfigFields(
+            "fhirdata.treatPossibleMatchesAsMatches",
+            String.valueOf(treatPossibleMatchesAsMatches),
+            "",
+            ""));
   }
 
   ConfigFields getConfigFields(FhirEtlOptions options, Method getMethod) {
