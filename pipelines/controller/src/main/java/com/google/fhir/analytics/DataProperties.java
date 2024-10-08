@@ -268,8 +268,8 @@ public class DataProperties {
         new ConfigFields("fhirdata.recursiveDepth", String.valueOf(recursiveDepth), "", ""),
         new ConfigFields("fhirdata.createParquetViews", String.valueOf(createParquetViews), "", ""),
         new ConfigFields(
-            "fhirdata.mergeGoldenResources", String.valueOf(mergeGoldenResources), "", ""),
-        new ConfigFields("fhirdata.goldenResourceTypes", mdmResourceList, "", ""),
+            "fhirdata.mapToGoldenResources", String.valueOf(mergeGoldenResources), "", ""),
+        new ConfigFields("fhirdata.mdmResourceList", mdmResourceList, "", ""),
         new ConfigFields(
             "fhirdata.treatPossibleMatchesAsMatches",
             String.valueOf(treatPossibleMatchesAsMatches),
