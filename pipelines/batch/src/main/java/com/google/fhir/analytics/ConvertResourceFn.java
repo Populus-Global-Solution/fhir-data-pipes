@@ -36,12 +36,7 @@ import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.r4.model.CanonicalType;
 import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Identifier;
-import org.hl7.fhir.r4.model.Location;
 import org.hl7.fhir.r4.model.Meta;
-import org.hl7.fhir.r4.model.Organization;
-import org.hl7.fhir.r4.model.Patient;
-import org.hl7.fhir.r4.model.Practitioner;
-import org.hl7.fhir.r4.model.PractitionerRole;
 import org.hl7.fhir.r4.model.Resource;
 import org.hl7.fhir.r4.model.codesystems.ActionType;
 import org.slf4j.Logger;
@@ -61,8 +56,6 @@ public class ConvertResourceFn extends FetchSearchPageFn<HapiRowDescriptor> {
 
   private final HashMap<String, Counter> totalPushTimeMillisMap;
 
-  private final List<String> resourceTypes;
-
   private final List<String> mdmResourceTypes;
 
   private final Boolean processDeletedRecords;
@@ -79,8 +72,8 @@ public class ConvertResourceFn extends FetchSearchPageFn<HapiRowDescriptor> {
     this.totalPushTimeMillisMap = new HashMap<String, Counter>();
     // Only in the incremental mode we process deleted resources.
     this.processDeletedRecords = !Strings.isNullOrEmpty(options.getSince());
-	this.resourceTypes = Arrays.asList(options.getResourceList().split(","));
-	this.mdmResourceTypes = Arrays.asList(options.getMdmResourceList().split(","));
+    List<String> resourceTypes = Arrays.asList(options.getResourceList().split(","));
+    this.mdmResourceTypes = Arrays.asList(options.getMdmResourceList().split(","));
     for (String resourceType : resourceTypes) {
       this.numFetchedResourcesMap.put(
           resourceType,
@@ -152,9 +145,9 @@ public class ConvertResourceFn extends FetchSearchPageFn<HapiRowDescriptor> {
     }
     resource.setMeta(meta);
 
-	if (mdmResourceTypes.contains(resourceType)) {
-		addSourceIdentifiers(resource, element);
-	}
+    if (mdmResourceTypes.contains(resourceType)) {
+      addSourceIdentifiers(resource, element);
+    }
 
     numFetchedResourcesMap.get(resourceType).inc(1);
 
@@ -230,12 +223,15 @@ public class ConvertResourceFn extends FetchSearchPageFn<HapiRowDescriptor> {
                 .setValue(sourceIdentifier.getValue()));
       }
 
-	  try {
-		  resource.getClass().getMethod("setIdentifier", List.class).invoke(resource, identifiers);
-	  } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
-		  log.warn("Failed to set identifiers for ${}, check that mdmResourceList is properly configured: ",
-				  resource.fhirType(), e);
-	  }
+      try {
+        resource.getClass().getMethod("setIdentifier", List.class).invoke(resource, identifiers);
+      } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
+        log.warn(
+            "Failed to set identifiers for ${}, check that mdmResourceList is properly configured:"
+                + " ",
+            resource.fhirType(),
+            e);
+      }
     }
   }
 
