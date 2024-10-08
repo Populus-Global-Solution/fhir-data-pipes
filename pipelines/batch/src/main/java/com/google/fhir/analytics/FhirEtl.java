@@ -326,6 +326,7 @@ public class FhirEtl {
 
     List<Pipeline> pipelines = new ArrayList<>();
     long totalNumOfResources = 0l;
+	List<String> mdmResourceTypes = Arrays.asList(options.getMdmResourceList().split(","));
     for (String resourceType : options.getResourceList().split(",")) {
       int numResources = resourceCount.get(resourceType);
       if (numResources == 0) {
@@ -348,7 +349,7 @@ public class FhirEtl {
                   options.getResourceList(),
                   JdbcIO.DataSourceConfiguration.create(jdbcSource),
                   options.getSince(),
-                  options.getMdmResourceList().contains(resourceType),
+                  mdmResourceTypes.contains(resourceType),
                   options.getMapToGoldenResources()));
 
       payload.apply(

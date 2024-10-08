@@ -72,9 +72,8 @@ public class ConvertResourceFn extends FetchSearchPageFn<HapiRowDescriptor> {
     this.totalPushTimeMillisMap = new HashMap<String, Counter>();
     // Only in the incremental mode we process deleted resources.
     this.processDeletedRecords = !Strings.isNullOrEmpty(options.getSince());
-    List<String> resourceTypes = Arrays.asList(options.getResourceList().split(","));
     this.mdmResourceTypes = Arrays.asList(options.getMdmResourceList().split(","));
-    for (String resourceType : resourceTypes) {
+    for (String resourceType : options.getResourceList().split(",")) {
       this.numFetchedResourcesMap.put(
           resourceType,
           Metrics.counter(
