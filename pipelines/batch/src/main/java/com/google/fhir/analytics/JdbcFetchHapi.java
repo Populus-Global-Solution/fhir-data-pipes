@@ -236,8 +236,7 @@ public class JdbcFetchHapi {
                   + " golden.res_id = mdm_link.golden_resource_pid JOIN hfj_resource source ON"
                   + " source.res_id = mdm_link.target_pid WHERE res_link.source_resource_type = ?"
                   + " AND res_link.src_resource_id % ? = ? AND"
-                  // TODO: possible matches (OR match_result = 1)
-                  + " mdm_link.match_result = 2");
+                  + " mdm_link.match_result = 2 OR mdm_link.match_result = 1");
       mdmQuery = builder.toString();
       log.info("JDBC query for mdm: " + mdmQuery);
 
