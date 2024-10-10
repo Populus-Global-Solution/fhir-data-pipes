@@ -139,14 +139,14 @@ fhirdata:
   # you can use those predefined views in your dev. env. too.
   hiveResourceViewsDir: "config/views"
 
-  # Whether to use HAPI-FHIR's MDM service to replace Resource references with
-  # their Golden Resource counterparts.
-  mergeGoldenResources: false
+  # Whether to use HAPI-FHIR's MDM service to replace resource references with
+  # their golden resource counterparts.
+  mapToGoldenResources: false
 
-  # Comma separated list of resources to treat as Golden Resources.
-  goldenResourceTypes: "Patient"
+  # Comma separated list of resources that are tracked by HAPI FHIR's MDM service.
+  mdmResourceList: ""
 
-  # Whether to treat possible matches as full matches when golden merging.
+  # Whether to treat possible matches as full matches when mapping resources to their golden resource.
   treatPossibleMatchesAsMatches: true
 
   # Directory path containing the structure definition files for any custom profiles that needs to be

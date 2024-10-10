@@ -39,9 +39,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
-import java.util.stream.Collectors;
 import org.hl7.fhir.instance.model.api.IAnyResource;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Parameters;
@@ -353,7 +353,7 @@ public class FhirSearchUtil {
     Parameters response = null;
     try {
       response =
-         fetchUtil
+          fetchUtil
               .getSourceClient()
               .operation()
               .onServer()
