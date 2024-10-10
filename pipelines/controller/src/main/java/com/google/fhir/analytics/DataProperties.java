@@ -109,7 +109,7 @@ public class DataProperties {
 
   public String sinkUserName;
 
-  private boolean mergeGoldenResources;
+  private boolean mapToGoldenResources;
 
   private boolean treatPossibleMatchesAsMatches;
 
@@ -220,7 +220,7 @@ public class DataProperties {
     String timestampSuffix = DwhFiles.safeTimestampSuffix();
     options.setOutputParquetPath(dwhRootPrefix + DwhFiles.TIMESTAMP_PREFIX + timestampSuffix);
 
-    options.setMapToGoldenResources(mergeGoldenResources);
+    options.setMapToGoldenResources(mapToGoldenResources);
     options.setTreatPossibleMatchesAsMatches(treatPossibleMatchesAsMatches);
     options.setMdmResourceList(mdmResourceList);
 
@@ -268,7 +268,7 @@ public class DataProperties {
         new ConfigFields("fhirdata.recursiveDepth", String.valueOf(recursiveDepth), "", ""),
         new ConfigFields("fhirdata.createParquetViews", String.valueOf(createParquetViews), "", ""),
         new ConfigFields(
-            "fhirdata.mapToGoldenResources", String.valueOf(mergeGoldenResources), "", ""),
+            "fhirdata.mapToGoldenResources", String.valueOf(mapToGoldenResources), "", ""),
         new ConfigFields("fhirdata.mdmResourceList", mdmResourceList, "", ""),
         new ConfigFields(
             "fhirdata.treatPossibleMatchesAsMatches",
