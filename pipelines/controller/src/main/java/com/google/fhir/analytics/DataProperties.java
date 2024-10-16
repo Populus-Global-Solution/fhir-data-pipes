@@ -113,8 +113,6 @@ public class DataProperties {
 
   private String mdmResourceList;
 
-  private String structureDefinitionsDir;
-
   public String sinkPassword;
 
   private String structureDefinitionsPath;

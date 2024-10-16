@@ -176,11 +176,10 @@ public class JdbcFetchHapi {
 
     private final String tagQuery;
 
-    private final String mdmQuery;
-
     private final boolean isMdmResource;
     private final boolean mapToGoldenResources;
-    private String identifiersQuery;
+    private final String mdmQuery;
+    private final String identifiersQuery;
 
     public FetchRowsJdbcIo(
         String resourceList,
@@ -228,17 +227,21 @@ public class JdbcFetchHapi {
       tagQuery = builder.toString();
       log.info("JDBC query for tags: " + tagQuery);
 
-      builder =
-          new StringBuilder(
-              "SELECT res_link.src_resource_id, golden.fhir_id AS golden_fhir_id, source.fhir_id AS"
-                  + " source_fhir_id FROM hfj_res_link res_link JOIN mpi_link mdm_link ON"
-                  + " res_link.target_resource_id = mdm_link.target_pid JOIN hfj_resource golden ON"
-                  + " golden.res_id = mdm_link.golden_resource_pid JOIN hfj_resource source ON"
-                  + " source.res_id = mdm_link.target_pid WHERE res_link.source_resource_type = ?"
-                  + " AND res_link.src_resource_id % ? = ? AND"
-                  + " mdm_link.match_result = 2 OR mdm_link.match_result = 1");
-      mdmQuery = builder.toString();
-      log.info("JDBC query for mdm: " + mdmQuery);
+      if (mapToGoldenResource) {
+        builder =
+            new StringBuilder(
+                "SELECT res_link.src_resource_id, golden.fhir_id AS golden_fhir_id, source.fhir_id"
+                    + " AS source_fhir_id FROM hfj_res_link res_link JOIN mpi_link mdm_link ON"
+                    + " res_link.target_resource_id = mdm_link.target_pid JOIN hfj_resource golden"
+                    + " ON golden.res_id = mdm_link.golden_resource_pid JOIN hfj_resource source ON"
+                    + " source.res_id = mdm_link.target_pid WHERE res_link.source_resource_type = ?"
+                    + " AND res_link.src_resource_id % ? = ? AND mdm_link.match_result = 2 OR"
+                    + " mdm_link.match_result = 1");
+        mdmQuery = builder.toString();
+        log.info("JDBC query for mdm: " + mdmQuery);
+      } else {
+        mdmQuery = null;
+      }
 
       if (isMdmResource) {
         builder =
@@ -252,6 +255,8 @@ public class JdbcFetchHapi {
 
         identifiersQuery = builder.toString();
         log.info("JDBC query for source identifiers: " + identifiersQuery);
+      } else {
+        identifiersQuery = null;
       }
     }
 

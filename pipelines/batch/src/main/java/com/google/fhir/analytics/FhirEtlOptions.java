@@ -275,7 +275,7 @@ public interface FhirEtlOptions extends BasePipelineOptions {
   void setMapToGoldenResources(Boolean mapToGoldenResources);
 
   @Description("Comma separated list of resources to treat as MDM Resources.")
-  @Default.String("Patient")
+  @Default.String("")
   String getMdmResourceList();
 
   void setMdmResourceList(String mdmResourceList);
