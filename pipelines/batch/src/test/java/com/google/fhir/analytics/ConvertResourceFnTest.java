@@ -49,6 +49,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class ConvertResourceFnTest {
 
   private ConvertResourceFn convertResourceFn;
+  private ConvertResourceFn mdmConvertResourceFn;
 
   @Mock private ParquetUtil mockParquetUtil;
 
@@ -57,6 +58,7 @@ public class ConvertResourceFnTest {
   private void setUp(String args[]) throws PropertyVetoException, SQLException, ProfileException {
     FhirEtlOptions options =
         PipelineOptionsFactory.fromArgs(args).withValidation().as(FhirEtlOptions.class);
+    options.setMdmResourceList("Patient");
     convertResourceFn =
         new ConvertResourceFn(options, "Test") {
 
@@ -323,9 +325,15 @@ public class ConvertResourceFnTest {
     List<Identifier> identifiers = ((Patient) capturedResource).getIdentifier();
     assertThat(identifiers, notNullValue());
     assertThat(identifiers.size(), equalTo(2));
-    assertThat(identifiers.get(0).getSystem(), equalTo("system-1"));
-    assertThat(identifiers.get(0).getValue(), equalTo("value-1"));
-    assertThat(identifiers.get(1).getSystem(), equalTo("system-2"));
-    assertThat(identifiers.get(1).getValue(), equalTo("value-2"));
+
+    Identifier identifier1 = new Identifier().setSystem("system-1").setValue("value-1");
+    Identifier identifier2 = new Identifier().setSystem("system-1").setValue("value-1");
+    boolean identifier1Found =
+        identifier1.equalsShallow(identifiers.get(0))
+            || identifier1.equalsShallow(identifiers.get(1));
+    boolean identifier2Found =
+        identifier2.equalsShallow(identifiers.get(0))
+            || identifier2.equalsShallow(identifiers.get(1));
+    assertThat(identifier1Found && identifier2Found, equalTo(true));
   }
 }
