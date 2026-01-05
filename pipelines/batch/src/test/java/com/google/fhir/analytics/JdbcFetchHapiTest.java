@@ -84,6 +84,7 @@ public class JdbcFetchHapiTest {
   public void testMapRow() throws Exception {
     Mockito.when(resultSet.getString("res_encoding")).thenReturn("DEL");
     Mockito.when(resultSet.getString("res_id")).thenReturn("101");
+    Mockito.when(resultSet.getString("fhir_id")).thenReturn("101");
     Mockito.when(resultSet.getString("res_type")).thenReturn("Encounter");
     Mockito.when(resultSet.getString("res_updated")).thenReturn("2002-03-12 10:09:20");
     Mockito.when(resultSet.getString("res_ver")).thenReturn("1");
